@@ -31,6 +31,17 @@ button,select,input{font:inherit}.app{height:100dvh;min-height:620px;padding:8px
 @media(max-width:1050px){.procedureCard{height:96vh}.procMain{grid-template-columns:1fr 1fr}.toolTray,.procActions{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:820px){.procedureCard{height:96vh;overflow:auto;display:block}.procHeader{position:sticky;top:0;z-index:2}.procMain{display:block}.procVisual{height:420px;margin-bottom:8px}.procControl{display:flex;flex-direction:column}.procWorkspace{overflow:visible}.jobTypeGrid{grid-template-columns:1fr}.procHeadStats{display:none}}
 
+
+/* ===== Fullscreen / hosted LMS controls ===== */
+.simScreenTools{position:absolute;right:10px;top:43px;z-index:25;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.simScreenTools .screenBtn{border:1px solid rgba(255,255,255,.28);background:rgba(12,26,37,.9);color:#fff;border-radius:8px;padding:7px 10px;min-height:34px;font-weight:800;font-size:9.5px;cursor:pointer;backdrop-filter:blur(3px)}
+.simScreenTools .screenBtn:hover{background:rgba(32,55,72,.96)}
+.simScreenTools .screenBtn:focus-visible{outline:3px solid #4db3ff;outline-offset:2px}
+.stage.is-fullscreen{width:100vw!important;height:100vh!important;border-radius:0!important;border:0!important}
+:fullscreen .app{max-width:none!important;width:100%!important;height:100%!important;padding:8px!important}
+:-webkit-full-screen .app{max-width:none!important;width:100%!important;height:100%!important;padding:8px!important}
+@media(max-width:900px){.simScreenTools{top:42px;right:8px}.simScreenTools .screenBtn{padding:6px 8px;font-size:8.5px}}
+
 </style>
 </head>
 <body>
@@ -61,6 +72,7 @@ button,select,input{font:inherit}.app{height:100dvh;min-height:620px;padding:8px
         <canvas id="cv" aria-label="Interactive 3D Yamaha F30 outboard"></canvas>
         <div class="stageHint">Drag to rotate • scroll/pinch to zoom • tap a component</div>
         <div class="viewStatus" id="viewStatus">LIVE 3D WORKBENCH</div>
+        <div class="simScreenTools" aria-label="Simulator display controls"><button class="screenBtn" id="fullscreenBtn" type="button">⛶ Full Screen</button><button class="screenBtn" id="popoutBtn" type="button">↗ Open Full Page</button></div>
         <div class="serviceFlag" id="serviceFlag">SERVICE JOB ACTIVE</div>
         <div class="componentInfo" id="componentInfo"><span class="tag">Selected component</span><h2 id="it">Tap a part</h2><p id="id">Switch to X-ray or internals and tap any component to inspect it.</p><button class="closeInfo" id="closeInfo" type="button" aria-label="Close component information">×</button></div>
         <div class="cap" id="cap" hidden></div>
@@ -587,4 +599,46 @@ setJobType('diagnostic');
  if(cap)obs.observe(cap,{childList:true,characterData:true,subtree:true,attributes:true});
 })();
 </script>
+
+<script>
+(()=>{
+ const fsBtn=document.getElementById('fullscreenBtn');
+ const popBtn=document.getElementById('popoutBtn');
+ const app=document.getElementById('appShell');
+ const stage=document.querySelector('.stage');
+ function fullscreenElement(){return document.fullscreenElement||document.webkitFullscreenElement||null}
+ async function toggleFullscreen(){
+   try{
+     if(fullscreenElement()){
+       if(document.exitFullscreen) await document.exitFullscreen();
+       else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+     }else{
+       const target=app||document.documentElement;
+       if(target.requestFullscreen) await target.requestFullscreen();
+       else if(target.webkitRequestFullscreen) target.webkitRequestFullscreen();
+       else throw new Error('Fullscreen API unavailable');
+     }
+   }catch(e){
+     if(popBtn){popBtn.textContent='↗ Open Full Page';popBtn.focus()}
+     alert('QLearn has blocked browser fullscreen for this embedded page. Use “Open Full Page” instead.');
+   }
+ }
+ function updateFsLabel(){
+   if(!fsBtn)return;
+   fsBtn.textContent=fullscreenElement()?'✕ Exit Full Screen':'⛶ Full Screen';
+   if(stage)stage.classList.toggle('is-fullscreen',!!fullscreenElement());
+   setTimeout(()=>window.dispatchEvent(new Event('resize')),80);
+ }
+ if(fsBtn)fsBtn.addEventListener('click',toggleFullscreen);
+ document.addEventListener('fullscreenchange',updateFsLabel);
+ document.addEventListener('webkitfullscreenchange',updateFsLabel);
+ if(popBtn)popBtn.addEventListener('click',()=>{
+   const w=window.open(window.location.href,'_blank','noopener');
+   if(!w){
+     const a=document.createElement('a');a.href=window.location.href;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
+   }
+ });
+})();
+</script>
+
 </body></html>
